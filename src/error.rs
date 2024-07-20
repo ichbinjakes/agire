@@ -8,7 +8,7 @@ pub struct HttpError {
 
 impl HttpError {
     pub fn send_response(self, stream: &mut TcpStream) {
-        let response = format!("HTTP/1.1 {} {}\r\n", self.code, self.detail);
+        let response = format!("HTTP/1.1 {} {}\r\n\r\n", self.code, self.detail);
 
         match stream.write(response.as_bytes()) {
             Ok(_) => {}
