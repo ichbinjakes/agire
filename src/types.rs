@@ -1,0 +1,47 @@
+use crate::error;
+
+enum HttpMethod {
+    Get,
+    Post,
+}
+
+impl HttpMethod {
+    fn from_str(s: &str) -> Result<Self, error::HttpError> {
+        match s {
+            "Get" => Ok(Self::Get),
+            "Post" => Ok(Self::Post),
+            _ => Err(error::HttpError {
+                code: 400,
+                detail: String::from("Unsupported HTTP Method"),
+            }),
+        }
+    }
+}
+
+enum HttpVersion {
+    V1_0,
+    V1_1,
+    V2,
+    V3,
+}
+
+impl HttpVersion {
+    fn from_str(s: &str) -> Result<Self, error::HttpError> {
+        match s {
+            "HTTP/1.0" => Ok(Self::V1_0),
+            "HTTP/1.1" => Ok(Self::V1_1),
+            "HTTP/2" => Ok(Self::V2),
+            "HTTP/3" => Ok(Self::V3),
+            _ => Err(error::HttpError {
+                code: 400,
+                detail: String::from("Unsupported HTTP Version"),
+            }),
+        }
+    }
+}
+
+struct RequestLine {
+    pub method: HttpMethod,
+    pub path: String,
+    pub version: HttpVersion,
+}
