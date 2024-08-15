@@ -1,15 +1,18 @@
-use crate::error;
+use crate::http::error;
 
-enum HttpMethod {
+
+#[derive(Clone, PartialEq, Eq)]
+pub enum HttpMethod {
+    Unset,
     Get,
     Post,
 }
 
 impl HttpMethod {
-    fn from_str(s: &str) -> Result<Self, error::HttpError> {
-        match s {
-            "Get" => Ok(Self::Get),
-            "Post" => Ok(Self::Post),
+    pub fn from_str(s: &str) -> Result<Self, error::HttpError> {
+        match s.to_uppercase().as_str() {
+            "GET" => Ok(Self::Get),
+            "POST" => Ok(Self::Post),
             _ => Err(error::HttpError {
                 code: 400,
                 detail: String::from("Unsupported HTTP Method"),

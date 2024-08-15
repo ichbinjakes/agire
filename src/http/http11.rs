@@ -1,5 +1,5 @@
-use crate::abnf::{CRLF, SP};
-use crate::types;
+use crate::http::abnf::{CRLF, SP};
+use crate::http::types;
 
 use regex;
 

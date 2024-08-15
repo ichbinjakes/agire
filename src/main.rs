@@ -1,90 +1,60 @@
-pub mod abnf;
-pub mod error;
-pub mod http11;
-pub mod server;
-pub mod types;
+
+// use http::types::HttpMethod;
+// use server::{routing,context};
+
+mod http;
+mod server;
+
+use http::types::HttpMethod;
+use server::context::{HttpRequest,HttpResponse,RequestContext};
+use server::routing;
+use server::application;
+use server::traits::Response;
+use server::error::ServerError;
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
 
+use env_logger;
+use log::{info, warn, debug, trace, error};
+
+
 fn main() {
-    let svr = server::Server {};
-    svr.start();
+    env_logger::init();
 
-    // println!("Logs from your program will appear here!");
+    info!("This is info");
+    warn!("This is warn");
+    debug!("This is debug");
+    trace!("This is trace");
+    error!("This is error");
 
-    // let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
+    let cfg = application::ServerConfig {
+        address: String::from("127.0.0.1"),
+        port: 4221,
+    };
 
-    // for stream in listener.incoming() {
-    //     match stream {
-    //         // return TcpStream
-    //         Ok(mut _stream) => {
-    //             println!("accepted new connection");
+    let router = routing::Router::<HttpRequest, HttpResponse>::new(
+        vec![
+            routing::Route {
+                path: String::from("/"),
+                func: Box::new(root_route),
+                methods: vec![HttpMethod::Get],
+            },
+        ]
+    );
 
-    //             // Process incoming data
-    //             let mut buf = String::new();
-    //             let mut stream_reader = BufReader::new(&_stream);
-    //             match stream_reader.read_line(&mut buf) {
-    //                 Ok(val) => {
-    //                     println!("Read {} bytes from tcp stream", val);
-    //                     //println!("Read content {:?}", buf);
-    //                     let request = parse_request(&buf);
-    //                     let request_line = match parse_request_line(request) {
-    //                         Ok(val) => val,
-    //                         Err(e) => {}
-    //                     };
-    //                     println!("Request Line: {}", request[0]);
-    //                     println!("Headers     : {}", request[1]);
-    //                     println!("Body        : {}", request[2]);
-    //                 }
-    //                 Err(val) => {
-    //                     println!("Error reading strem: {:?}", val);
-    //                 }
-    //             }
+    let application = application::Application::new(
+        cfg, router, None
+    );
 
-    //             // Send the response
-    //             match _stream.write(b"HTTP/1.1 200 OK\r\n\r\n") {
-    //                 Ok(val) => {
-    //                     println!("Sent 200 response");
-    //                 }
-    //                 Err(e) => {
-    //                     println!("send error: {}", e);
-    //                 }
-    //             }
+    application.serve();
 
-    //             // Shutdown the connection
-    //             match _stream.shutdown(Shutdown::Both) {
-    //                 Ok(_) => {}
-    //                 Err(e) => {
-    //                     println!("error closing the connection: {}", e);
-    //                 }
-    //             }
-
-    //             // End
-    //         }
-    //         Err(e) => {
-    //             println!("error: {}", e);
-    //         }
-    //     }
-    // }
 }
 
-// fn process_request(stream: &mut TcpStream) -> Result<(), HttpError> {}
-
-// fn parse_request_line(line: &str) -> Result<RequestLine, HttpError> {
-//     let mut iterator = line.split(' ').into_iter();
-//     let method = match HttpMethod::from_str(iterator.next().unwrap()) {
-//         Ok(val) => val,
-//         Err(e) => return e,
-//     };
-//     let path = iterator.next().unwrap();
-//     let version = match HttpVersion::from_str(iterator.next().unwrap()) {
-//         Ok(val) => val,
-//         Err(e) => return e,
-//     };
-//     Ok(RequestLine {
-//         method: method,
-//         path: String::from(path),
-//         version: version,
-//     })
-// }
+fn root_route(ctx: RequestContext<HttpRequest, HttpResponse>) -> Result<RequestContext<HttpRequest, HttpResponse>, ServerError> {
+    let mut ctx = ctx;
+    let mut response = HttpResponse::new();
+    response.set_status_code(200);
+    ctx.set_response(response);
+    Ok(ctx)
+}
