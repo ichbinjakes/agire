@@ -1,18 +1,16 @@
-use crate::server::traits::{RequestMiddleware,Request,Response};
 use crate::server::context::RequestContext;
 use crate::server::error::ServerError;
-use crate::server::routing::Router;
 use crate::server::parse;
+use crate::server::routing::Router;
+use crate::server::traits::{Request, RequestMiddleware, Response};
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
-
 
 pub struct ServerConfig {
     pub address: String,
     pub port: usize,
 }
-
 
 pub struct Application<T: Request, R: Response> {
     config: ServerConfig,
@@ -21,8 +19,12 @@ pub struct Application<T: Request, R: Response> {
     middleware: Option<Vec<Box<dyn RequestMiddleware<T, R>>>>,
 }
 
-impl <T: Request, R: Response> Application<T, R> {
-    pub fn new(config: ServerConfig, router: Router<T,R>, middleware: Option<Vec<Box<dyn RequestMiddleware<T, R>>>>) -> Self {
+impl<T: Request, R: Response> Application<T, R> {
+    pub fn new(
+        config: ServerConfig,
+        router: Router<T, R>,
+        middleware: Option<Vec<Box<dyn RequestMiddleware<T, R>>>>,
+    ) -> Self {
         Self {
             config: config,
             router: router,
@@ -31,22 +33,20 @@ impl <T: Request, R: Response> Application<T, R> {
     }
 }
 
-
-impl <T: Request, R: Response> Application<T, R> {
+impl<T: Request, R: Response> Application<T, R> {
     fn get_bind(&self) -> String {
         format!("{:}:{:?}", self.config.address, self.config.port)
     }
 
     fn handle(&self, buffer: String) -> Result<RequestContext<T, R>, ServerError> {
-        
         let mut ctx = RequestContext::<T, R>::new();
 
         // Parse request
         match parse::parse_into_request(buffer) {
             Ok(val) => {
                 ctx.set_request(val);
-            },
-            Err(e) => return Err(e)
+            }
+            Err(e) => return Err(e),
         }
 
         // Execute middleware pre request
@@ -56,12 +56,12 @@ impl <T: Request, R: Response> Application<T, R> {
                     match middleware.on_request(ctx) {
                         Ok(val) => {
                             ctx = val;
-                        },
+                        }
                         Err(e) => return Err(e),
                     }
                 }
-            },
-            None => {},
+            }
+            None => {}
         }
 
         // Dispatch route handler
@@ -78,16 +78,15 @@ impl <T: Request, R: Response> Application<T, R> {
                     match middleware.on_request(ctx) {
                         Ok(val) => {
                             ctx = val;
-                        },
+                        }
                         Err(e) => return Err(e),
                     }
                 }
-            },
-            None => {},
+            }
+            None => {}
         }
 
         Ok(ctx)
-
     }
 
     fn send_response(&self, stream: &mut TcpStream, response: String) {
@@ -127,7 +126,7 @@ impl <T: Request, R: Response> Application<T, R> {
                     let mut stream_reader = BufReader::new(&_stream);
 
                     match stream_reader.read_line(&mut buf) {
-                        Ok(_) => {},
+                        Ok(_) => {}
                         Err(_) => {
                             // Send bad request?
                             // Assume this never happens for now
@@ -139,10 +138,8 @@ impl <T: Request, R: Response> Application<T, R> {
                         Err(e) => parse::serialize_error_into_response(e),
                     };
 
-
                     self.send_response(&mut _stream, response);
                     self.close_connection(&mut _stream);
-
                 }
                 Err(e) => {
                     println!("error: {}", e);

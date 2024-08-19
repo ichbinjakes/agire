@@ -1,6 +1,5 @@
 use crate::http::error;
 
-
 #[derive(Clone, PartialEq, Eq)]
 pub enum HttpMethod {
     Unset,

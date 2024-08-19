@@ -35,7 +35,6 @@ pub const VCHAR: &str = r"[\x21-\x7E]";
 // WSP = SP / HTAB
 pub const WSP: &str = r"[[:blank:]]";
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,8 +1,7 @@
 use crate::http::types::HttpMethod;
-use crate::server::traits::{Request,Response};
+use crate::server::traits::{Request, Response};
 
 use std::collections::HashMap;
-
 
 pub struct RequestContext<T: Request, R: Response> {
     request: T,
@@ -16,19 +15,19 @@ impl<T: Request, R: Response> RequestContext<T, R> {
             response: R::new(),
         }
     }
-
+    
     pub fn get_request(&self) -> &T {
         &self.request
     }
-
+    
     pub fn set_request(&mut self, request: T) {
         self.request = request;
     }
-
+    
     pub fn get_response(&self) -> &R {
         &self.response
     }
-
+    
     pub fn set_response(&mut self, response: R) {
         self.response = response;
     }
@@ -43,8 +42,17 @@ pub struct HttpRequest {
     body: String,
 }
 
-
 impl Request for HttpRequest {
+    fn clone(&self) -> Self {
+        Self {
+            method: self.method.clone(),
+            path: self.path.clone(),
+            path_params: self.path_params.clone(),
+            query_params: self.query_params.clone(),
+            headers: self.headers.clone(),
+            body: self.body.clone(),
+        }
+    }
 
     fn new() -> Self {
         Self {
@@ -56,7 +64,7 @@ impl Request for HttpRequest {
             body: String::new(),
         }
     }
-    
+
     fn get_method(&self) -> HttpMethod {
         self.method.clone()
     }
@@ -66,7 +74,7 @@ impl Request for HttpRequest {
     }
 
     fn get_path(&self) -> String {
-        return self.path.clone()
+        return self.path.clone();
     }
 
     fn set_path(&mut self, path: String) {
@@ -78,6 +86,10 @@ impl Request for HttpRequest {
             Some(v) => Some(v.clone()),
             None => None,
         }
+    }
+
+    fn set_path_param(&mut self, name: &str, value: &str) {
+        self.path_params.insert(String::from(name), String::from(value));
     }
 
     fn get_query_param(&self, name: &str) -> Option<String> {
@@ -97,18 +109,18 @@ impl Request for HttpRequest {
     fn get_body(&self) -> String {
         self.body.clone()
     }
-    
+
     fn set_header(&mut self, name: &str, value: &str) {
         self.headers.insert(String::from(name), String::from(value));
     }
-    
+
     fn set_body(&mut self, body: String) {
         self.body = body;
+        // Set content length header
     }
-
 }
 
-
+#[derive(Clone)]
 pub struct HttpResponse {
     status_code: Option<usize>,
     headers: HashMap<String, String>,
@@ -116,7 +128,13 @@ pub struct HttpResponse {
 }
 
 impl Response for HttpResponse {
-
+    fn clone(&self) -> Self {
+        Self {
+            status_code: self.status_code.clone(),
+            headers: self.headers.clone(),
+            body: self.body.clone(),
+        }
+    }
     fn new() -> Self {
         Self {
             status_code: None,
@@ -132,25 +150,37 @@ impl Response for HttpResponse {
     fn set_status_code(&mut self, code: usize) {
         self.status_code = Some(code)
     }
-    
+
     fn get_header(&self, name: &str) -> Option<String> {
         match self.headers.get(name) {
             Some(v) => Some(v.clone()),
             None => None,
         }
     }
-    
+
     fn set_header(&mut self, name: &str, value: &str) {
         self.headers.insert(String::from(name), String::from(value));
     }
-    
+
+    fn get_headers(&self) -> &HashMap<String, String> {
+        &self.headers
+    }
+
     fn get_body(&self) -> String {
         self.body.clone()
     }
 
     fn set_body(&mut self, body: String) {
+        self.set_header("Content-Length", body.len().to_string().as_str());
         self.body = body;
-
     }
+}
 
+impl HttpResponse {
+    fn plaintext_response(body: String) -> HttpResponse {
+        let mut response = HttpResponse::new();
+        response.set_header("Content-Type", "text/plain");
+        response.set_body(body);
+        response
+    }
 }

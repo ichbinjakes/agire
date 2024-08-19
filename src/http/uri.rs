@@ -7,18 +7,13 @@ pub const SCHEME: &str = r"[[:alpha:]]([[[:alnum:]]\+\-\.])*";
 
 // authority = [ userinfo "@" ] host [ ":" port ]
 
-
 // userinfo    = *( unreserved / pct-encoded / sub-delims / ":" )
-
 
 // host = IP-literal / IPv4address / reg-name
 
-
 // IP-literal = "[" ( IPv6address / IPvFuture  ) "]"
 
-
 // IPvFuture  = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
-
 
 // IPv6address =                            6( h16 ":" ) ls32
 //             /                       "::" 5( h16 ":" ) ls32
@@ -80,8 +75,15 @@ pub const GEN_DELIMS: &str = r"\:\\\?\#\[\]\@";
 // sub-delims    = "!" / "$" / "&" / "'" / "(" / ")"
 //               / "*" / "+" / "," / ";" / "="
 pub const SUB_DELIMS: &str = r"\!\$\&\'\(\)\*\+\,\;\=";
+
+
 // reserved      = gen-delims / sub-delims
-pub static RESERVED: &str = &format!(r"[{}{}]", String::from(GEN_DELIMS), String::from(SUB_DELIMS));
+// pub const RESERVED: &str = {
+//     let mut r = String::new();
+//     r.push_str("[");
+//     &r
+//     // format!(r"[{}{}]", String::from(GEN_DELIMS), String::from(SUB_DELIMS)).as_str();
+// };
 
 // URI-reference = URI / relative-ref
 
@@ -91,6 +93,5 @@ pub static RESERVED: &str = &format!(r"[{}{}]", String::from(GEN_DELIMS), String
 //               / path-absolute
 //               / path-noscheme
 //               / path-empty
-
 
 // absolute-URI  = scheme ":" hier-part [ "?" query ]
