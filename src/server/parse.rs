@@ -39,7 +39,6 @@ pub fn parse_into_request<T: Request>(raw: String) -> Result<T, ServerError> {
     // Path + Query params not currently supported
     request.set_path(uri);
 
-
     // Headers
     // Not currently supported
 
@@ -48,7 +47,6 @@ pub fn parse_into_request<T: Request>(raw: String) -> Result<T, ServerError> {
 
     Ok(request)
 }
-
 
 /// Serialise a struct the implments Response into raw bytes for transfer to client
 pub fn serialize_into_response<R: Response>(response: &R) -> String {
@@ -62,7 +60,7 @@ pub fn serialize_into_response<R: Response>(response: &R) -> String {
 
     let mut header = String::new();
     for (key, val) in response.get_headers().iter() {
-        header.push_str(&format!("{}: {}", key, val));
+        header.push_str(&format!("{}: {}\r\n", key, val));
     }
 
     let status_line = format!("HTTP/1.1 {} Ok", status_code);

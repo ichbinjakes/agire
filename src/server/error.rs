@@ -8,7 +8,8 @@ pub struct ServerError {
 impl ServerError {
     pub fn new(status_code: usize, detail: String) -> Self {
         Self {
-            status_code: status_code, detail: detail
+            status_code: status_code,
+            detail: detail,
         }
     }
 }

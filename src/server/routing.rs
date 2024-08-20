@@ -4,9 +4,8 @@ use crate::server::context::RequestContext;
 use crate::server::error::{ServerError, StdServerError};
 use crate::server::traits::{Request, Response};
 
-use regex;
 use log;
-
+use regex;
 
 pub struct Route<T: Request, R: Response> {
     pub path: String,
@@ -21,13 +20,19 @@ impl<T: Request, R: Response> Route<T, R> {
         func: Box<dyn Fn(RequestContext<T, R>) -> Result<RequestContext<T, R>, ServerError>>,
         methods: Vec<HttpMethod>,
     ) -> Self {
-
         match convert_path_to_regex(&path) {
             Some(val) => {
-                log::debug!("Route for path: {} generated a regex match pattern: {}.", &path, &val);
+                log::debug!(
+                    "Route for path: {} generated a regex match pattern: {}.",
+                    &path,
+                    &val
+                );
                 let re = match regex::Regex::new(&val) {
                     Ok(val) => val,
-                    Err(_) => panic!("Failed to convert the route path for regex matching: {}", &path),
+                    Err(_) => panic!(
+                        "Failed to convert the route path for regex matching: {}",
+                        &path
+                    ),
                 };
                 return Self {
                     path: path,
@@ -35,9 +40,12 @@ impl<T: Request, R: Response> Route<T, R> {
                     methods: methods,
                     regex_path: Some(re),
                 };
-            },
+            }
             None => {
-                log::debug!("Route for path: {} did not generate a regex match pattern.", &path);
+                log::debug!(
+                    "Route for path: {} did not generate a regex match pattern.",
+                    &path
+                );
                 return Self {
                     path: path,
                     func: func,
@@ -46,8 +54,7 @@ impl<T: Request, R: Response> Route<T, R> {
                 };
             }
         }
-        
-        
+
         // log::error!("REGEX PATTERN: {}", &convert_path_to_regex(&path));
         // Self {
         //     path: path,
@@ -58,7 +65,7 @@ impl<T: Request, R: Response> Route<T, R> {
     }
 
     pub fn get_path_regex(&self) -> &Option<regex::Regex> {
-        return &self.regex_path
+        return &self.regex_path;
     }
 }
 
@@ -79,11 +86,9 @@ impl<T: Request, R: Response> Router<T, R> {
             for method in route.methods.iter() {
                 if *method == request.get_method() {
                     match route.get_path_regex() {
-                        Some(val) => {
-                            match val.find(&request.get_path()) {
-                                Some(_) => return Ok(&route),
-                                None => {},
-                            }
+                        Some(val) => match val.find(&request.get_path()) {
+                            Some(_) => return Ok(&route),
+                            None => {}
                         },
                         None => {
                             if route.path == request.get_path() {
@@ -101,12 +106,12 @@ impl<T: Request, R: Response> Router<T, R> {
     pub fn dispatch(&self, ctx: RequestContext<T, R>) -> Result<RequestContext<T, R>, ServerError> {
         let mut ctx = ctx;
         let request = ctx.get_request();
-        
+
         let route = match self.match_path_to_route(request) {
             Ok(val) => val,
             Err(e) => return Err(e),
         };
-        
+
         match route.get_path_regex() {
             Some(re) => {
                 match extract_path_params(&request.get_path(), re) {
@@ -119,19 +124,21 @@ impl<T: Request, R: Response> Router<T, R> {
                             // log::debug!("Getting path parameter: str {}", request.get_path_param("str").unwrap())
                         }
                         ctx.set_request(request);
-                    },
+                    }
                     Err(e) => return Err(e),
                 }
-            },
-            None => {},
+            }
+            None => {}
         }
         let f = &route.func;
         f(ctx)
     }
 }
 
-
-fn extract_path_params(path: &str, path_regex: &regex::Regex) -> Result<Vec<(String, String)>, ServerError> {
+fn extract_path_params(
+    path: &str,
+    path_regex: &regex::Regex,
+) -> Result<Vec<(String, String)>, ServerError> {
     let mut path_params = Vec::<(String, String)>::new();
 
     let caps = match path_regex.captures(path) {
@@ -145,26 +152,30 @@ fn extract_path_params(path: &str, path_regex: &regex::Regex) -> Result<Vec<(Str
             None => {
                 // log::error!("Failed to find a path parameter from the request: {:?}", path_regex.capture_names());
                 // return Err(StdServerError::BadRequest.to_error());
-            },
+            }
         }
     }
 
     Ok(path_params)
 }
 
-
-/// Function 
+/// Function
 fn convert_path_to_regex(path: &str) -> Option<String> {
     // regex to extract params from request path - p-char: unreserved / pct-encoded / sub-delims / ":" / "@"
-    let path_re = format!(r"[{}{}{}\:\@]+", uri::UNRESERVED, uri::PCT_ENCODED, uri::SUB_DELIMS);
+    let path_re = format!(
+        r"[{}{}{}\:\@]+",
+        uri::UNRESERVED,
+        uri::PCT_ENCODED,
+        uri::SUB_DELIMS
+    );
     // regex to find param in compiled path
     let param_re = regex::Regex::new(r"\{[[:alpha:]]+\}").unwrap();
 
     match param_re.find(path) {
-        Some(_) => {},
+        Some(_) => {}
         None => return None,
     }
-    
+
     // 1. find the strings surrounded by {}, only alpha num can be used
     let path_components = path.split('/');
     let mut new_components = vec![String::from("^")];

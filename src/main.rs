@@ -9,7 +9,7 @@ use server::application;
 use server::context::{HttpRequest, HttpResponse, RequestContext};
 use server::error::ServerError;
 use server::routing;
-use server::traits::{Request,Response};
+use server::traits::{Request, Response};
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
@@ -72,7 +72,12 @@ fn echo_route(
             response.set_body(val);
             ctx.set_response(response);
         }
-        None => return Err(ServerError::new(400,String::from("Missing parameter {str}"))),
+        None => {
+            return Err(ServerError::new(
+                400,
+                String::from("Missing parameter {str}"),
+            ))
+        }
     };
 
     Ok(ctx)

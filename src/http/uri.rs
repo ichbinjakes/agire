@@ -76,7 +76,6 @@ pub const GEN_DELIMS: &str = r"\:\\\?\#\[\]\@";
 //               / "*" / "+" / "," / ";" / "="
 pub const SUB_DELIMS: &str = r"\!\$\&\'\(\)\*\+\,\;\=";
 
-
 // reserved      = gen-delims / sub-delims
 // pub const RESERVED: &str = {
 //     let mut r = String::new();

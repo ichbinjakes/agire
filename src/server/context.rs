@@ -15,19 +15,19 @@ impl<T: Request, R: Response> RequestContext<T, R> {
             response: R::new(),
         }
     }
-    
+
     pub fn get_request(&self) -> &T {
         &self.request
     }
-    
+
     pub fn set_request(&mut self, request: T) {
         self.request = request;
     }
-    
+
     pub fn get_response(&self) -> &R {
         &self.response
     }
-    
+
     pub fn set_response(&mut self, response: R) {
         self.response = response;
     }
@@ -89,7 +89,8 @@ impl Request for HttpRequest {
     }
 
     fn set_path_param(&mut self, name: &str, value: &str) {
-        self.path_params.insert(String::from(name), String::from(value));
+        self.path_params
+            .insert(String::from(name), String::from(value));
     }
 
     fn get_query_param(&self, name: &str) -> Option<String> {
