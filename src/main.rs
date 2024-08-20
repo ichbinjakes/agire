@@ -70,6 +70,7 @@ fn echo_route(
             let mut response = HttpResponse::new();
             response.set_status_code(200);
             response.set_body(val);
+            response.set_header("Content-Type", "text/plain");
             ctx.set_response(response);
         }
         None => {
