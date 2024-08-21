@@ -163,8 +163,6 @@ fn read_stream(stream: &TcpStream) -> Result<String, ServerError> {
                 return Err(StdServerError::BadRequest.to_error());
             },
         }
-
-        
     }
     Ok(result)
 }
