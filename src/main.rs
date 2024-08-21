@@ -42,6 +42,11 @@ fn main() {
             Box::new(echo_route),
             vec![HttpMethod::Get],
         ),
+        routing::Route::new(
+            String::from("/user-agent"),
+            Box::new(user_agent_route),
+            vec![HttpMethod::Get],
+        ),
     ]);
 
     let application = application::Application::new(cfg, router, None);
@@ -81,5 +86,31 @@ fn echo_route(
         }
     };
 
+    Ok(ctx)
+}
+
+fn user_agent_route(
+    ctx: RequestContext<HttpRequest, HttpResponse>,
+) -> Result<RequestContext<HttpRequest, HttpResponse>, ServerError> {
+    let mut ctx = ctx;
+    let request = ctx.get_request();
+
+    // println!("{:?}", request.get_headers());
+
+    match request.get_header("User-Agent") {
+        Some(val) => {
+            let mut response = HttpResponse::new();
+            response.set_status_code(200);
+            response.set_body(val);
+            response.set_header("Content-Type", "text/plain");
+            ctx.set_response(response);
+        },
+        None => {
+            return Err(ServerError::new(
+                400,
+                String::from("Missing User-Agent header"),
+            ))
+        }
+    }
     Ok(ctx)
 }

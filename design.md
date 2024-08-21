@@ -1,3 +1,9 @@
+## What I would change
+
+After writing the framework I have a better understanding of rust ownership. **Next time:** I would cut out the request context struct and just pass ownership of the request and response objects between functions, including user route functions. Not that the design is bad, but it feels a little awkward as a developer to need to clone a request, modify it and the set it again on the ctx.
+
+What I actually mean is internally it is awkward, for the end user it is not so bad.
+
 
 ## High level function
 

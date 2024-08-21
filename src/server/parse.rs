@@ -9,6 +9,8 @@ use log::{debug, error, info, trace, warn};
 pub fn parse_into_request<T: Request>(raw: String) -> Result<T, ServerError> {
     let mut request = T::new();
 
+    println!("{}", raw);
+
     // let raw_request = match String::from_utf8(raw.to_vec()) {
     //     Ok(val) => val,
     //     Err(_) => return Err(StdServerError::BadRequest.to_error()),
@@ -40,7 +42,9 @@ pub fn parse_into_request<T: Request>(raw: String) -> Result<T, ServerError> {
     request.set_path(uri);
 
     // Headers
-    // Not currently supported
+    for (name, value) in http11::parse_headers(&raw) {
+        request.set_header(&name, &value);
+    }
 
     // Body
     // Not currently supported

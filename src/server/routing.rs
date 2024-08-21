@@ -54,14 +54,6 @@ impl<T: Request, R: Response> Route<T, R> {
                 };
             }
         }
-
-        // log::error!("REGEX PATTERN: {}", &convert_path_to_regex(&path));
-        // Self {
-        //     path: path,
-        //     func: func,
-        //     methods: methods,
-        //     regex_path: re,
-        // }
     }
 
     pub fn get_path_regex(&self) -> &Option<regex::Regex> {
@@ -94,7 +86,7 @@ impl<T: Request, R: Response> Router<T, R> {
                             if route.path == request.get_path() {
                                 return Ok(&route);
                             }
-                        }
+                        },
                     }
                 }
             }

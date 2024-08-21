@@ -3,6 +3,8 @@ use crate::server::traits::{Request, Response};
 
 use std::collections::HashMap;
 
+use log;
+
 pub struct RequestContext<T: Request, R: Response> {
     request: T,
     response: R,
@@ -112,6 +114,7 @@ impl Request for HttpRequest {
     }
 
     fn set_header(&mut self, name: &str, value: &str) {
+        log::debug!("Setting header: {}: {}", name, value);
         self.headers.insert(String::from(name), String::from(value));
     }
 

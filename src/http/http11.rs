@@ -1,4 +1,4 @@
-use crate::http::abnf::{CRLF, SP};
+use crate::http::abnf::{CRLF, SP, VCHAR};
 use crate::http::types;
 
 use regex;
@@ -15,13 +15,68 @@ use regex;
 // const TEXT: &str = r"[]";
 // HEX = "A" | "B" | "C" | "D" | "E" | "F" | "a" | "b" | "c" | "d" | "e" | "f" | DIGIT
 const HEX: &str = r"[[:xdigit:]]";
-// token = 1*<any CHAR except CTLs or tspecials>
-const TOKEN: &str = r"[\x30-\x39\x41-\x5A\x61-\x7A]";
+
+// token          = 1*tchar
+// tchar          = "!" / "#" / "$" / "%" / "&" / "'" / "*"
+//                 / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~"
+//                 / DIGIT / ALPHA
+// const TOKEN: &str = r"[\x30-\x39\x41-\x5A\x61-\x7A]";
+const TOKEN: &str = r"[!#$%&'*+-.^_`|~[[:alnum:]]]";
+
 // tspecials = "(" | ")" | "<" | ">" | "@" | "," | ";" | ":" | "\" | <"> | "/" | "[" | "]" | "?" | "=" | "{" | "}" | SP  |  HT
+
 const TSPECIALS: &str =
     r"\x28\x29\x3C\x3E\x40\x2C\x3B\x3A\x5C\x22\x2F\x5B\x5D\x3F\x3D\x7B\x7D\x20\x09";
-// HTTP-Version   = "HTTP" "/" 1*DIGIT "." 1*DIGIT
+
+    // HTTP-Version   = "HTTP" "/" 1*DIGIT "." 1*DIGIT"GET /echo/abc HTTP/1.1\r\nHost: localhost:4221\r\nUser-Agent: curl/7.64.1\r\nAccept: */*\r\n\r\n") {
+        //     Some(val) => {
+        //         println!("{:?}", val);
+        //     },
+        //     None => {},
+        // }
 const HTTP_VERSION: &str = r"HTTP\/[0-9\.]{1,3}";
+
+// Parse header values from the request
+pub fn parse_headers(request: &str) -> Vec<(String, String)> {
+    // HTTP-message   = start-line CRLF
+    //                *( field-line CRLF )
+    //                CRLF
+    //                [ message-body ]
+
+    // field-line   = field-name ":" OWS field-value OWS
+
+    // field-name     = token
+    // field-value    = *field-content
+    // field-content  = field-vchar
+    //                  [ 1*( SP / HTAB / field-vchar ) field-vchar ]
+    // field-vchar    = VCHAR / obs-text
+    // obs-text       = %x80-FF
+    // let re = regex::Regex::new(&format!(r"(?P<name>({TOKEN}+):{SP}+(?P<value>({VCHAR}|[\x80-\xFF])+)\r\n)")).unwrap();
+    let re = regex::Regex::new(&format!(r"(?P<name>{TOKEN}+):{SP}+(?P<value>({VCHAR}|[\x80-\xFF])+)\r\n")).unwrap();
+
+    let mut headers = Vec::<(String, String)>::new();
+
+    for i in re.find_iter(request) {
+        match re.captures(i.as_str()) {
+            Some(val) => {
+                let name = match val.name("name") {
+                    Some(m) => m.as_str(),
+                    None => "",
+                };
+                let value = match val.name("value") {
+                    Some(m) => m.as_str(),
+                    None => "",
+                };
+                if name != "" && value != "" {
+                    headers.push((String::from(name), String::from(value)));
+                }
+            },
+            None => {},
+        }
+    }
+    println!("headers: {:?} {}", &headers, request);
+    headers
+}
 
 // Scan incoming request for the request line and extract details
 pub fn parse_request_line(request: &str) -> Option<(String, String, String)> {
@@ -41,9 +96,59 @@ pub fn parse_request_line(request: &str) -> Option<(String, String, String)> {
     }
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_parse_headers() {
+
+        // let re = regex::Regex::new(&format!(r"(?P<name>{TOKEN}+):{SP}+(?P<value>({VCHAR}|[\x80-\xFF])+)\r\n")).unwrap();
+
+        // match re.captures("User-Agent: curl/7.64.1\r\n") {
+        //     Some(val) => {
+        //         println!("{} {}", &val["name"], &val["value"]);
+        //     },
+        //     None => {},
+        // }
+        
+        // for i in re.find_iter("GET /echo/abc HTTP/1.1\r\nHost: localhost:4221\r\nUser-Agent: curl/7.64.1\r\nAccept: */*\r\n\r\n") {
+        //     println!("{:?}", i);
+        //     match re.captures(i.as_str()) {
+        //         Some(val) => {
+        //             let name = match val.name("name") {
+        //                 Some(m) => m.as_str(),
+        //                 None => "",
+        //             };
+        //             let value = match val.name("value") {
+        //                 Some(m) => m.as_str(),
+        //                 None => "",
+        //             };
+        //             if name != "" && value != "" {
+        //                 println!("{}: {}", name, value);
+        //             }
+        //         },
+        //         None => {},
+        //     }
+        // }
+
+        // match re.find("GET /echo/abc HTTP/1.1\r\nHost: localhost:4221\r\nUser-Agent: curl/7.64.1\r\nAccept: */*\r\n\r\n") {
+        //     Some(val) => {
+        //         println!("{:?}", val);
+        //     },
+        //     None => {},
+        // }
+
+        let result = parse_headers("GET /echo/abc HTTP/1.1\r\nHost: localhost:4221\r\nUser-Agent: curl/7.64.1\r\nAccept: */*\r\n\r\n");
+        println!("{:?}", result);
+        let desired = vec![
+            (String::from("Host"), String::from("localhost:4221")),
+            (String::from("User-Agent"), String::from("curl/7.64.1")),
+            (String::from("Accept"), String::from("*/*")),
+        ];
+        assert_eq!(result, desired);
+    }    
 
     #[test]
     fn test_parse_request_line() {

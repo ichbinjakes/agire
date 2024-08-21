@@ -1,5 +1,5 @@
 use crate::server::context::RequestContext;
-use crate::server::error::ServerError;
+use crate::server::error::{ServerError, StdServerError};
 use crate::server::parse;
 use crate::server::routing::Router;
 use crate::server::traits::{Request, RequestMiddleware, Response};
@@ -107,6 +107,8 @@ impl<T: Request, R: Response> Application<T, R> {
         }
     }
 
+    
+
     pub fn serve(&self) {
         let listener = match TcpListener::bind(self.get_bind()) {
             Ok(val) => val,
@@ -121,19 +123,16 @@ impl<T: Request, R: Response> Application<T, R> {
                 Ok(mut _stream) => {
                     println!("accepted new connection");
 
-                    // Process incoming data
-                    let mut buf = String::new();
-                    let mut stream_reader = BufReader::new(&_stream);
+                    let raw = match read_stream(&_stream) {
+                        Ok(val) => val,
+                        Err(e) => {
+                            panic!("failed read stream");
+                        }, 
+                    };
+                    
+                    log::debug!("Buf String: {}", &raw);
 
-                    match stream_reader.read_line(&mut buf) {
-                        Ok(_) => {}
-                        Err(_) => {
-                            // Send bad request?
-                            // Assume this never happens for now
-                        }
-                    }
-
-                    let response = match self.handle(buf) {
+                    let response = match self.handle(raw) {
                         Ok(val) => parse::serialize_into_response(val.get_response()),
                         Err(e) => parse::serialize_error_into_response(e),
                     };
@@ -147,4 +146,32 @@ impl<T: Request, R: Response> Application<T, R> {
             }
         }
     }
+}
+
+fn read_stream(stream: &TcpStream) -> Result<String, ServerError> {
+    const BUF_SIZE: usize = 100;
+    let mut result = String::new();
+    let mut reader = BufReader::new(stream);
+    let mut buffer: [u8; BUF_SIZE] = [0; BUF_SIZE];
+
+    // read buffer until less than BUF_SIZE bytes have been read
+    loop {
+        match reader.read(&mut buffer[..]) {
+            Ok(val) => {
+                for n in 0..(val-1) {
+                    result.push(char::from(buffer[n]));
+                }
+                if val != BUF_SIZE {
+                    break;
+                }
+            },
+            Err(_) => {
+                return Err(StdServerError::BadRequest.to_error());
+            },
+        }
+
+        
+    }
+
+    Ok(result)
 }
