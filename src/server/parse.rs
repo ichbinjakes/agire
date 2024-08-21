@@ -55,14 +55,21 @@ pub fn parse_into_request<T: Request>(raw: String) -> Result<T, ServerError> {
 /// Serialise a struct the implments Response into raw bytes for transfer to client
 pub fn serialize_into_response<R: Response>(response: &R) -> String {
     let body = response.get_body();
+    
     let status_code = match response.get_status_code() {
         Some(val) => val,
         None => {
             return serialize_error_into_response(StdServerError::InternalServerError.to_error());
         }
     };
-
+    
     let mut header = String::new();
+    match response.get_header("Content-Length") {
+        Some(_) => {},
+        None => {
+            header.push_str(&format!("{}: {}\r\n", "Content-Length", body.len().to_string().as_str()));
+        }
+    }
     for (key, val) in response.get_headers().iter() {
         header.push_str(&format!("{}: {}\r\n", key, val));
     }

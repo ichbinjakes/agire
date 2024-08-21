@@ -175,7 +175,6 @@ impl Response for HttpResponse {
     }
 
     fn set_body(&mut self, body: String) {
-        self.set_header("Content-Length", body.len().to_string().as_str());
         self.body = body;
     }
 }
