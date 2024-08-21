@@ -96,10 +96,30 @@ pub fn parse_request_line(request: &str) -> Option<(String, String, String)> {
     }
 }
 
+pub fn parse_body(request: &str) -> Option<String> {
+    let body_regex = regex::Regex::new(&format!(r"({CRLF}{CRLF})(?P<body>.*$)")).unwrap();
+    match body_regex.captures(request) {
+        Some(val) => {
+            match val.name("body") {
+                Some(body) => return Some(String::from(body.as_str())),
+                None => return None,
+            }
+        },
+        None => None,
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_parse_body() {
+        let result = parse_body("GET /echo/abc HTTP/1.1\r\nHost: localhost:4221\r\nUser-Agent: curl/7.64.1\r\nAccept: */*\r\n\r\n12345");
+        assert_eq!(
+            result, Some(String::from("12345"))
+        );
+    }
 
     #[test]
     fn test_parse_headers() {

@@ -40,7 +40,12 @@ pub fn parse_into_request<T: Request>(raw: String) -> Result<T, ServerError> {
     }
 
     // Body
-    // Not currently supported
+    match http11::parse_body(&raw) {
+        Some(body) => {
+            request.set_body(body);
+        },
+        None => {},
+    }
 
     Ok(request)
 }

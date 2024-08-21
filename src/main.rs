@@ -52,8 +52,13 @@ fn main() {
         ),
         routing::Route::new(
             String::from("/files/{filename}"),
-            Box::new(files_route),
+            Box::new(files_get_route),
             vec![HttpMethod::Get],
+        ),
+        routing::Route::new(
+            String::from("/files/{filename}"),
+            Box::new(files_post_route),
+            vec![HttpMethod::Post],
         ),
     ]);
 
@@ -122,7 +127,7 @@ fn user_agent_route(
     Ok(ctx)
 }
 
-fn files_route(
+fn files_get_route(
     ctx: RequestContext<HttpRequest, HttpResponse>,
 ) -> Result<RequestContext<HttpRequest, HttpResponse>, ServerError> {
     let mut ctx = ctx;
@@ -175,6 +180,68 @@ fn files_route(
     let mut response = HttpResponse::new();
     response.set_status_code(200);
     response.set_body(file_contents);
+    response.set_header("Content-Type", "application/octet-stream");
+    ctx.set_response(response);
+
+    Ok(ctx)
+}
+
+fn files_post_route(
+    ctx: RequestContext<HttpRequest, HttpResponse>,
+) -> Result<RequestContext<HttpRequest, HttpResponse>, ServerError> {
+    let mut ctx = ctx;
+    let request = ctx.get_request();
+
+    let mut is_next = false;
+    let mut directory = String::new();
+    for arg in std::env::args() {
+        if is_next {
+            directory = arg;
+            break;
+        }
+        if arg == "--directory" {
+            is_next = true;
+        }
+    }
+    
+    let filename = match request.get_path_param("filename") {
+        Some(val) => val,
+        None => {
+            return Err(StdServerError::BadRequest.to_error());
+        },
+    };
+
+    let file_path = path::Path::new(&directory);
+    let file_path = file_path.join(filename);
+
+    if file_path.exists() {
+        log::error!("File already exist: {:?}", file_path.as_os_str());
+        return Err(ServerError::new(
+            403,
+            String::from("File already exists"),
+        ));
+    }
+
+    let file_contents = request.get_body();
+
+    let mut fh = match std::fs::File::create(file_path) {
+        Ok(val) => val,
+        Err(e) => {
+            log::error!("{:?}", e);
+            return Err(StdServerError::InternalServerError.to_error());
+        }
+    };
+    match fh.write_all(file_contents.as_bytes()) {
+        Ok(_) => {},
+        Err(e) => {
+            log::error!("{:?}", e);
+            return Err(StdServerError::InternalServerError.to_error());
+        }
+    }
+
+    let mut response = HttpResponse::new();
+    response.set_status_code(201);
+    response.set_body(String::from("Created"));
     response.set_header("Content-Type", "application/octet-stream");
     ctx.set_response(response);
 
