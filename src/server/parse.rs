@@ -72,7 +72,13 @@ pub fn serialize_into_response<R: Response>(response: &R) -> String {
         header.push_str(&format!("{}: {}\r\n", key, val));
     }
 
-    let status_line = format!("HTTP/1.1 {} OK", status_code);
+    let status = match status_code {
+        200 => "OK",
+        201 => "Created",
+        _ => "",
+    };
+
+    let status_line = format!("HTTP/1.1 {} {}", status_code, status);
     let response = format!("{}\r\n{}\r\n{}", status_line, header, body);
 
     debug!("{}", response);

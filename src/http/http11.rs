@@ -36,6 +36,7 @@ const TSPECIALS: &str =
         // }
 const HTTP_VERSION: &str = r"HTTP\/[0-9\.]{1,3}";
 
+
 // Parse header values from the request
 pub fn parse_headers(request: &str) -> Vec<(String, String)> {
     // HTTP-message   = start-line CRLF

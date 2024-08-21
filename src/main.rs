@@ -241,7 +241,6 @@ fn files_post_route(
 
     let mut response = HttpResponse::new();
     response.set_status_code(201);
-    response.set_body(String::from("Created"));
     response.set_header("Content-Type", "application/octet-stream");
     ctx.set_response(response);
 
