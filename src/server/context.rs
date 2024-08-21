@@ -120,7 +120,6 @@ impl Request for HttpRequest {
 
     fn set_body(&mut self, body: String) {
         self.body = body;
-        // Set content length header
     }
 }
 

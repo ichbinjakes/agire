@@ -9,13 +9,6 @@ use log::{debug, error, info, trace, warn};
 pub fn parse_into_request<T: Request>(raw: String) -> Result<T, ServerError> {
     let mut request = T::new();
 
-    println!("{}", raw);
-
-    // let raw_request = match String::from_utf8(raw.to_vec()) {
-    //     Ok(val) => val,
-    //     Err(_) => return Err(StdServerError::BadRequest.to_error()),
-    // };
-
     // Parse Request Line
     let rl = match http11::parse_request_line(&raw) {
         Some(val) => val,

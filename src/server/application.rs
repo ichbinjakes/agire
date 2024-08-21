@@ -4,6 +4,8 @@ use crate::server::parse;
 use crate::server::routing::Router;
 use crate::server::traits::{Request, RequestMiddleware, Response};
 
+use std::thread;
+use std::sync::Arc;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
 
@@ -16,19 +18,19 @@ pub struct Application<T: Request, R: Response> {
     config: ServerConfig,
     router: Router<T, R>,
     // how do different types of middleware work? box + dyn?
-    middleware: Option<Vec<Box<dyn RequestMiddleware<T, R>>>>,
+    // middleware: Option<Vec<Arc<dyn RequestMiddleware<T, R> + 'static>>>,
 }
 
 impl<T: Request, R: Response> Application<T, R> {
     pub fn new(
         config: ServerConfig,
         router: Router<T, R>,
-        middleware: Option<Vec<Box<dyn RequestMiddleware<T, R>>>>,
+        // middleware: Option<Vec<Arc<dyn RequestMiddleware<T, R> +'static>>>,
     ) -> Self {
         Self {
             config: config,
             router: router,
-            middleware: middleware,
+            // middleware: middleware,
         }
     }
 }
@@ -50,19 +52,19 @@ impl<T: Request, R: Response> Application<T, R> {
         }
 
         // Execute middleware pre request
-        match &self.middleware {
-            Some(val) => {
-                for middleware in val.iter() {
-                    match middleware.on_request(ctx) {
-                        Ok(val) => {
-                            ctx = val;
-                        }
-                        Err(e) => return Err(e),
-                    }
-                }
-            }
-            None => {}
-        }
+        // match &self.middleware {
+        //     Some(val) => {
+        //         for middleware in val.iter() {
+        //             match middleware.on_request(ctx) {
+        //                 Ok(val) => {
+        //                     ctx = val;
+        //                 }
+        //                 Err(e) => return Err(e),
+        //             }
+        //         }
+        //     }
+        //     None => {}
+        // }
 
         // Dispatch route handler
         ctx = match self.router.dispatch(ctx) {
@@ -72,77 +74,69 @@ impl<T: Request, R: Response> Application<T, R> {
 
         // Execute middleware pre response
         // This means errors wont go through this middleware...
-        match &self.middleware {
-            Some(val) => {
-                for middleware in val.iter() {
-                    match middleware.on_request(ctx) {
-                        Ok(val) => {
-                            ctx = val;
-                        }
-                        Err(e) => return Err(e),
-                    }
-                }
-            }
-            None => {}
-        }
+        // match &self.middleware {
+        //     Some(val) => {
+        //         for middleware in val.iter() {
+        //             match middleware.on_request(ctx) {
+        //                 Ok(val) => {
+        //                     ctx = val;
+        //                 }
+        //                 Err(e) => return Err(e),
+        //             }
+        //         }
+        //     }
+        //     None => {}
+        // }
 
         Ok(ctx)
     }
 
-    fn send_response(&self, stream: &mut TcpStream, response: String) {
-        match stream.write(response.as_bytes()) {
-            Ok(_) => {}
-            Err(e) => {
-                println!("Error sending the response: {:?}", e);
-            }
-        }
-    }
+    fn handle_stream(&self, stream: TcpStream) {
+        let mut stream = stream;
 
-    fn close_connection(&self, stream: &mut TcpStream) {
-        match stream.shutdown(Shutdown::Both) {
-            Ok(_) => {}
-            Err(e) => {
-                println!("error closing the connection: {}", e);
-            }
-        }
-    }
-
-    
-
-    pub fn serve(&self) {
-        let listener = match TcpListener::bind(self.get_bind()) {
+        let raw = match read_stream(&stream) {
             Ok(val) => val,
             Err(e) => {
-                println!("Error starting server: {:?}", e);
-                panic!("Failed to start server on {:?}", self.get_bind());
-            }
+                panic!("failed read stream");
+            }, 
+        };
+        
+        log::debug!("Buf String: {}", &raw);
+
+        let response = match self.handle(raw) {
+            Ok(val) => parse::serialize_into_response(val.get_response()),
+            Err(e) => parse::serialize_error_into_response(e),
         };
 
-        for stream in listener.incoming() {
-            match stream {
-                Ok(mut _stream) => {
-                    println!("accepted new connection");
+        send_response(&mut stream, response);
+        close_connection(&mut stream);
+    }
+}
 
-                    let raw = match read_stream(&_stream) {
-                        Ok(val) => val,
-                        Err(e) => {
-                            panic!("failed read stream");
-                        }, 
-                    };
-                    
-                    log::debug!("Buf String: {}", &raw);
+pub fn serve<T: Request + 'static, R: Response + 'static>(application: Application<T, R>) {
+    // let application = application;
+    let application = Arc::new(application);
+    // let application = Arc::<&Application<T, R>>::new(&application);
 
-                    let response = match self.handle(raw) {
-                        Ok(val) => parse::serialize_into_response(val.get_response()),
-                        Err(e) => parse::serialize_error_into_response(e),
-                    };
+    let listener = match TcpListener::bind(application.get_bind()) {
+        Ok(val) => val,
+        Err(e) => {
+            println!("Error starting server: {:?}", e);
+            panic!("Failed to start server on {:?}", application.get_bind());
+        }
+    };
 
-                    self.send_response(&mut _stream, response);
-                    self.close_connection(&mut _stream);
-                }
-                Err(e) => {
-                    println!("error: {}", e);
-                }
+    for stream in listener.incoming() {
+        match stream {
+            Ok(val) => {
+                println!("accepted new connection");
+                let arc = Arc::clone(&application);
+                thread::spawn(move || {
+                    arc.handle_stream(val);
+                });
+            }
+            Err(e) => {
+                println!("error: {}", e);
             }
         }
     }
@@ -172,6 +166,23 @@ fn read_stream(stream: &TcpStream) -> Result<String, ServerError> {
 
         
     }
-
     Ok(result)
+}
+
+fn send_response(stream: &mut TcpStream, response: String) {
+    match stream.write(response.as_bytes()) {
+        Ok(_) => {}
+        Err(e) => {
+            println!("Error sending the response: {:?}", e);
+        }
+    }
+}
+
+fn close_connection(stream: &mut TcpStream) {
+    match stream.shutdown(Shutdown::Both) {
+        Ok(_) => {}
+        Err(e) => {
+            println!("error closing the connection: {}", e);
+        }
+    }
 }

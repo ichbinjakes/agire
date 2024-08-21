@@ -6,10 +6,12 @@ use crate::server::traits::{Request, Response};
 
 use log;
 use regex;
+use std::sync::Arc;
+
 
 pub struct Route<T: Request, R: Response> {
     pub path: String,
-    pub func: Box<dyn Fn(RequestContext<T, R>) -> Result<RequestContext<T, R>, ServerError>>,
+    pub func: Box<dyn Fn(RequestContext<T, R>) -> Result<RequestContext<T, R>, ServerError> + Send + Sync + 'static>,
     pub methods: Vec<HttpMethod>,
     regex_path: Option<regex::Regex>,
 }
@@ -17,7 +19,7 @@ pub struct Route<T: Request, R: Response> {
 impl<T: Request, R: Response> Route<T, R> {
     pub fn new(
         path: String,
-        func: Box<dyn Fn(RequestContext<T, R>) -> Result<RequestContext<T, R>, ServerError>>,
+        func: Box<dyn Fn(RequestContext<T, R>) -> Result<RequestContext<T, R>, ServerError> + Send + Sync + 'static>,
         methods: Vec<HttpMethod>,
     ) -> Self {
         match convert_path_to_regex(&path) {

@@ -49,9 +49,9 @@ fn main() {
         ),
     ]);
 
-    let application = application::Application::new(cfg, router, None);
+    let app = application::Application::new(cfg, router);
 
-    application.serve();
+    application::serve(app);
 }
 
 fn root_route(
@@ -59,6 +59,7 @@ fn root_route(
 ) -> Result<RequestContext<HttpRequest, HttpResponse>, ServerError> {
     let mut ctx = ctx;
     let mut response = HttpResponse::new();
+    
     response.set_status_code(200);
     ctx.set_response(response);
     Ok(ctx)
@@ -94,8 +95,6 @@ fn user_agent_route(
 ) -> Result<RequestContext<HttpRequest, HttpResponse>, ServerError> {
     let mut ctx = ctx;
     let request = ctx.get_request();
-
-    // println!("{:?}", request.get_headers());
 
     match request.get_header("User-Agent") {
         Some(val) => {

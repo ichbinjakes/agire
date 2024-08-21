@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 /// Trait that defines methods a request type must have
 /// Request types must implement this for use within route handlers
-pub trait Request {
+pub trait Request: Send + Sync {
     fn clone(&self) -> Self;
 
     /// Assign memory for the instance
@@ -47,7 +47,7 @@ pub trait Request {
 }
 
 /// Trait that defines Response behaviour
-pub trait Response {
+pub trait Response: Send + Sync {
     fn clone(&self) -> Self;
 
     /// Assign memory for the response instance
@@ -90,7 +90,7 @@ pub trait Response {
 // }
 
 /// Trait for middleware that operates on impl Request & impl Response types
-pub trait RequestMiddleware<T: Request, R: Response> {
+pub trait RequestMiddleware<T: Request, R: Response>: Send + Sync {
     // This function takes ownership of Request to mutate as needed
     fn on_request(&self, ctx: RequestContext<T, R>) -> Result<RequestContext<T, R>, ServerError> {
         Ok(ctx)
