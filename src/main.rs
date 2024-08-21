@@ -133,19 +133,7 @@ fn files_get_route(
     let mut ctx = ctx;
     let request = ctx.get_request();
 
-    let mut is_next = false;
-    let mut directory = String::new();
-    for arg in std::env::args() {
-        if is_next {
-            directory = arg;
-            break;
-        }
-        if arg == "--directory" {
-            is_next = true;
-        }
-    }
-    log::debug!("Directory is set to: {}", directory);
-    
+    let directory = get_directory();    
     let filename = match request.get_path_param("filename") {
         Some(val) => val,
         None => {
@@ -192,17 +180,7 @@ fn files_post_route(
     let mut ctx = ctx;
     let request = ctx.get_request();
 
-    let mut is_next = false;
-    let mut directory = String::new();
-    for arg in std::env::args() {
-        if is_next {
-            directory = arg;
-            break;
-        }
-        if arg == "--directory" {
-            is_next = true;
-        }
-    }
+    let directory = get_directory();
     
     let filename = match request.get_path_param("filename") {
         Some(val) => val,
@@ -245,4 +223,19 @@ fn files_post_route(
     ctx.set_response(response);
 
     Ok(ctx)
+}
+
+fn get_directory() -> String {
+    let mut is_next = false;
+    let mut directory = String::new();
+    for arg in std::env::args() {
+        if is_next {
+            directory = arg;
+            break;
+        }
+        if arg == "--directory" {
+            is_next = true;
+        }
+    }
+    directory
 }
