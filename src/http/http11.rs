@@ -102,7 +102,9 @@ pub fn parse_body(request: &str) -> Option<String> {
     match body_regex.captures(request) {
         Some(val) => {
             match val.name("body") {
-                Some(body) => return Some(String::from(body.as_str())),
+                Some(body) => {
+                    return Some(String::from(body.as_str()))
+                },
                 None => return None,
             }
         },

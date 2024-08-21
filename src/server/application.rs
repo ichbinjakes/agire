@@ -152,7 +152,7 @@ fn read_stream(stream: &TcpStream) -> Result<String, ServerError> {
     loop {
         match reader.read(&mut buffer[..]) {
             Ok(val) => {
-                for n in 0..(val-1) {
+                for n in 0..(val) {
                     result.push(char::from(buffer[n]));
                 }
                 if val != BUF_SIZE {
